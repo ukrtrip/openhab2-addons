@@ -214,7 +214,7 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
     /**
      * Starts the Homematic gateway client.
      */
-    protected void startClients() throws IOException {
+    protected synchronized void startClients() throws IOException {
         for (TransferMode mode : availableInterfaces.values()) {
             if (!rpcClients.containsKey(mode)) {
                 rpcClients.put(mode,
@@ -226,7 +226,7 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
     /**
      * Stops the Homematic gateway client.
      */
-    protected void stopClients() {
+    protected synchronized void stopClients() {
         for (RpcClient<?> rpcClient : rpcClients.values()) {
             rpcClient.dispose();
         }
@@ -236,7 +236,7 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
     /**
      * Starts the Homematic RPC server.
      */
-    private void startServers() throws IOException {
+    private synchronized void startServers() throws IOException {
         for (TransferMode mode : availableInterfaces.values()) {
             if (!rpcServers.containsKey(mode)) {
                 RpcServer rpcServer = mode == TransferMode.XML_RPC ? new XmlRpcServer(this, config)
@@ -253,7 +253,7 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
     /**
      * Stops the Homematic RPC server.
      */
-    private void stopServers() {
+    private synchronized void stopServers() {
         for (HmInterface hmInterface : availableInterfaces.keySet()) {
             try {
                 getRpcClient(hmInterface).release(hmInterface);
@@ -846,6 +846,39 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
         }
     }
 
+    @Override
+    public void deleteDevice(String address, boolean reset, boolean force, boolean defer) {
+        for (RpcClient<?> rpcClient : rpcClients.values()) {
+            try {
+                rpcClient.deleteDevice(getDevice(address), translateFlags(reset, force, defer));
+            } catch (HomematicClientException e) {
+                // thrown by getDevice(address) if no device for the given address is paired on the gateway
+                logger.info("Device deletion not possible: {}", e.getMessage());
+            } catch (IOException e) {
+                logger.warn("Device deletion failed: {}", e.getMessage(), e);
+            }
+        }
+    }
+
+    private int translateFlags(boolean reset, boolean force, boolean defer) {
+        final int resetFlag = 0b001;
+        final int forceFlag = 0b010;
+        final int deferFlag = 0b100;
+        int resultFlag = 0;
+
+        if (reset) {
+            resultFlag += resetFlag;
+        }
+        if (force) {
+            resultFlag += forceFlag;
+        }
+        if (defer) {
+            resultFlag += deferFlag;
+        }
+
+        return resultFlag;
+    }
+
     /**
      * Thread which validates the connection to the gateway and restarts the RPC client if necessary.
      */
@@ -858,7 +891,7 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
         public void run() {
             try {
                 if (ping && !pong) {
-                    handleInvalidConnection();
+                    handleInvalidConnection("No Pong received!");
                 }
 
                 pong = false;
@@ -873,7 +906,7 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
                 ping = true;
             } catch (IOException ex) {
                 try {
-                    handleInvalidConnection();
+                    handleInvalidConnection("IOException " + ex.getMessage());
                 } catch (IOException ex2) {
                     // ignore
                 }
@@ -893,11 +926,11 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
             }
         }
 
-        private void handleInvalidConnection() throws IOException {
+        private void handleInvalidConnection(String cause) throws IOException {
             ping = false;
             if (!connectionLost) {
                 connectionLost = true;
-                logger.warn("Connection lost on gateway '{}'", id);
+                logger.warn("Connection lost on gateway '{}', cause: \"{}\"", id, cause);
                 gatewayAdapter.onConnectionLost();
             }
             stopServers();

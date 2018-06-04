@@ -24,9 +24,11 @@ import org.eclipse.smarthome.core.library.types.NextPreviousType;
 import org.eclipse.smarthome.core.library.types.OnOffType;
 import org.eclipse.smarthome.core.library.types.PercentType;
 import org.eclipse.smarthome.core.library.types.PlayPauseType;
+import org.eclipse.smarthome.core.library.types.QuantityType;
 import org.eclipse.smarthome.core.library.types.RawType;
 import org.eclipse.smarthome.core.library.types.RewindFastforwardType;
 import org.eclipse.smarthome.core.library.types.StringType;
+import org.eclipse.smarthome.core.library.unit.SmartHomeUnits;
 import org.eclipse.smarthome.core.thing.Channel;
 import org.eclipse.smarthome.core.thing.ChannelUID;
 import org.eclipse.smarthome.core.thing.Thing;
@@ -177,6 +179,7 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
             case CHANNEL_PLAYFAVORITE:
                 if (command instanceof StringType) {
                     playFavorite(command);
+                    updateState(CHANNEL_PLAYFAVORITE, UnDefType.UNDEF);
                 } else if (RefreshType.REFRESH == command) {
                     updateState(CHANNEL_PLAYFAVORITE, UnDefType.UNDEF);
                 }
@@ -245,6 +248,9 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
             case CHANNEL_PVR_CHANNEL:
             case CHANNEL_THUMBNAIL:
             case CHANNEL_FANART:
+            case CHANNEL_CURRENTTIME:
+            case CHANNEL_CURRENTTIMEPERCENTAGE:
+            case CHANNEL_DURATION:
                 if (RefreshType.REFRESH == command) {
                     connection.updatePlayerStatus();
                 }
@@ -274,10 +280,19 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
         connection.playURI(command.toString());
     }
 
-    public void playFavorite(Command command) {
-        String path = connection.getFavoritePath(command.toString());
-        if (StringUtils.isNotEmpty(path)) {
-            connection.playURI(path);
+    private void playFavorite(Command command) {
+        KodiFavorite favorite = connection.getFavorite(command.toString());
+        if (favorite != null) {
+            String path = favorite.getPath();
+            String windowParameter = favorite.getWindowParameter();
+            if (StringUtils.isNotEmpty(path)) {
+                connection.playURI(path);
+            } else if (StringUtils.isNotEmpty(windowParameter)) {
+                String[] windowParameters = { windowParameter };
+                connection.activateWindow(favorite.getWindow(), windowParameters);
+            } else {
+                connection.activateWindow(favorite.getWindow());
+            }
         } else {
             logger.debug("Received unknown favorite '{}'.", command);
         }
@@ -325,15 +340,15 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
         int videoPlaylistID = connection.getPlaylistID("video");
 
         // pause playback
-        if (KodiState.Play.equals(connection.getState())) {
+        if (KodiState.PLAY.equals(connection.getState())) {
             // pause if current media is "audio" or "video", stop otherwise
             if (audioPlaylistID == playerState.getSavedPlaylistID()
                     || videoPlaylistID == playerState.getSavedPlaylistID()) {
                 connection.playerPlayPause();
-                waitForState(KodiState.Pause);
+                waitForState(KodiState.PAUSE);
             } else {
                 connection.playerStop();
-                waitForState(KodiState.Stop);
+                waitForState(KodiState.STOP);
             }
         }
 
@@ -349,10 +364,10 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
         waitForPlaylistState(KodiPlaylistState.ADDED);
 
         connection.playlistPlay(audioPlaylistID, 0);
-        waitForState(KodiState.Play);
+        waitForState(KodiState.PLAY);
         // wait for stop if previous playlist wasn't "audio"
         if (audioPlaylistID != playerState.getSavedPlaylistID()) {
-            waitForState(KodiState.Stop);
+            waitForState(KodiState.STOP);
         }
 
         // remove the notification uri from the playlist
@@ -366,20 +381,20 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
         // resume playing save playlist item if player wasn't stopped
         logger.trace("Restoring player state");
         switch (playerState.getSavedState()) {
-            case Play:
+            case PLAY:
                 if (audioPlaylistID != playerState.getSavedPlaylistID() && -1 != playerState.getSavedPlaylistID()) {
                     connection.playlistPlay(playerState.getSavedPlaylistID(), 0);
                 }
                 break;
-            case Pause:
+            case PAUSE:
                 if (audioPlaylistID == playerState.getSavedPlaylistID()) {
                     connection.playerPlayPause();
                 }
                 break;
-            case Stop:
-            case End:
-            case FastForward:
-            case Rewind:
+            case STOP:
+            case END:
+            case FASTFORWARD:
+            case REWIND:
                 // nothing to do
                 break;
         }
@@ -513,7 +528,7 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
                 }, 1, getIntConfigParameter(REFRESH_PARAMETER, 10), TimeUnit.SECONDS);
 
                 statusUpdaterFuture = scheduler.scheduleWithFixedDelay(() -> {
-                    if (KodiState.Play.equals(connection.getState())) {
+                    if (KodiState.PLAY.equals(connection.getState())) {
                         connection.updatePlayerStatus();
                     }
                 }, 1, getIntConfigParameter(REFRESH_PARAMETER, 10), TimeUnit.SECONDS);
@@ -577,24 +592,24 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
     @Override
     public void updatePlayerState(KodiState state) {
         switch (state) {
-            case Play:
+            case PLAY:
                 updateState(CHANNEL_CONTROL, PlayPauseType.PLAY);
                 updateState(CHANNEL_STOP, OnOffType.OFF);
                 break;
-            case Pause:
+            case PAUSE:
                 updateState(CHANNEL_CONTROL, PlayPauseType.PAUSE);
                 updateState(CHANNEL_STOP, OnOffType.OFF);
                 break;
-            case Stop:
-            case End:
+            case STOP:
+            case END:
                 updateState(CHANNEL_CONTROL, PlayPauseType.PAUSE);
                 updateState(CHANNEL_STOP, OnOffType.ON);
                 break;
-            case FastForward:
+            case FASTFORWARD:
                 updateState(CHANNEL_CONTROL, RewindFastforwardType.FASTFORWARD);
                 updateState(CHANNEL_STOP, OnOffType.OFF);
                 break;
-            case Rewind:
+            case REWIND:
                 updateState(CHANNEL_CONTROL, RewindFastforwardType.REWIND);
                 updateState(CHANNEL_STOP, OnOffType.OFF);
                 break;
@@ -648,6 +663,24 @@ public class KodiHandler extends BaseThingHandler implements KodiEventListener {
     @Override
     public void updateFanart(RawType fanart) {
         updateState(CHANNEL_FANART, createImage(fanart));
+    }
+
+    @Override
+    public void updateCurrentTime(long currentTime) {
+        updateState(CHANNEL_CURRENTTIME,
+                currentTime < 0 ? UnDefType.UNDEF : new QuantityType<>(currentTime, SmartHomeUnits.SECOND));
+    }
+
+    @Override
+    public void updateCurrentTimePercentage(double currentTimePercentage) {
+        updateState(CHANNEL_CURRENTTIMEPERCENTAGE, currentTimePercentage < 0 ? UnDefType.UNDEF
+                : new QuantityType<>(currentTimePercentage, SmartHomeUnits.PERCENT));
+    }
+
+    @Override
+    public void updateDuration(long duration) {
+        updateState(CHANNEL_DURATION,
+                duration < 0 ? UnDefType.UNDEF : new QuantityType<>(duration, SmartHomeUnits.SECOND));
     }
 
     /**
