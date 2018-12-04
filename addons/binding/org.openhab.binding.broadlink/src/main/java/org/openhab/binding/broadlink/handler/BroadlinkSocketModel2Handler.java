@@ -37,6 +37,7 @@ public class BroadlinkSocketModel2Handler extends BroadlinkSocketHandler {
         payload[4] = (byte) status;
         byte message[] = buildMessage((byte) 106, payload);
         sendDatagram(message);
+	receiveDatagram("acknowledgment packet");
     }
 
     protected boolean getStatusFromDevice() {
@@ -62,8 +63,7 @@ public class BroadlinkSocketModel2Handler extends BroadlinkSocketHandler {
                 logError("Null payload in response from model 2 status request");
                 return false;
             }
-	    	
-			updateState("powerOn", deriveOnOffStateFromPayload(payload));
+            updateState("powerOn", deriveOnOffStateFromPayload(decodedPayload));
             return true;
         } catch (Exception ex) {
                 logError("Exception while getting status from device", ex);
