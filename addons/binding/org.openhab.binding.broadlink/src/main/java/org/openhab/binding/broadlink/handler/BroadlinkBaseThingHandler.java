@@ -72,11 +72,10 @@ public abstract class BroadlinkBaseThingHandler extends BaseThingHandler impleme
         if (thingConfig.getPollingInterval() != 0) {
             refreshHandle = scheduler.scheduleWithFixedDelay(
                 new Runnable() {
-
-                public void run() {
+                  public void run() {
                     updateItemStatus();
-                }
-            },
+                  }
+                },
                 1L,
                 thingConfig.getPollingInterval(),
                 TimeUnit.SECONDS
@@ -85,6 +84,14 @@ public abstract class BroadlinkBaseThingHandler extends BaseThingHandler impleme
             updateItemStatus();
         }
     }
+
+/*
+highPriorityTasks   = scheduler.scheduleWithFixedDelay(() -> {  publishData(highPriorityChannels);    }, WAIT_TIME_CHANNEL_ITEM_LINK_INIT, refreshIntervalHighPriority.intValue(),  TimeUnit.SECONDS);
+mediumPriorityTasks = scheduler.scheduleWithFixedDelay(() -> {  publishData(mediumPriorityChannels);  }, WAIT_TIME_CHANNEL_ITEM_LINK_INIT, refreshIntervalMediumPriority.intValue(), TimeUnit.SECONDS);
+
+*/
+
+
 
     public void thingUpdated(Thing thing) {
         thingLogger.logDebug("thingUpdated");

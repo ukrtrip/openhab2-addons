@@ -27,6 +27,8 @@ public class BroadlinkBindingConstants {
 
     public static final String BINDING_ID = "broadlink";
     public static final String CAST_ADDRESS = "255.255.255.255";
+    public static final String AUTHORIZATION_KEY_DEFAULT = "097628343fe99e23765c1513accf8b02";
+    public static final String IV_DEFAULT = "562e17996d093d28ddb3ba695a2e6f58";
     public static final int CAST_PORT = 80;
     public static final int BUFFER_LENGTH = 1024;
     public static final int TIMEOUT = 5000;
@@ -42,6 +44,7 @@ public class BroadlinkBindingConstants {
     public static final ThingTypeUID THING_TYPE_SP1 = new ThingTypeUID("broadlink", "sp1");
     public static final ThingTypeUID THING_TYPE_SP2 = new ThingTypeUID("broadlink", "sp2");
     public static final ThingTypeUID THING_TYPE_SP3 = new ThingTypeUID("broadlink", "sp3");
+    public static final ThingTypeUID THING_TYPE_SP3S = new ThingTypeUID("broadlink", "sp3"); //SP3 with power meter
     public static final ThingTypeUID THING_TYPE_S1C = new ThingTypeUID("broadlink", "s1c");
     public static final ThingTypeUID THING_TYPE_PIR = new ThingTypeUID("broadlink", "s1p");
     public static final ThingTypeUID THING_TYPE_MAGNET = new ThingTypeUID("broadlink", "s1m");
@@ -104,6 +107,7 @@ public class BroadlinkBindingConstants {
     public static final String SP1 = "SP1";
     public static final String SP2 = "SP2";
     public static final String SP3 = "SP3";
+    public static final String SP3S = "SP3s";
     public static final String SPMini2 = "SPMini2";
     public static final String OEMSPMini = "OEMSPMini";
     public static final String OEMSPMini2 = "OEMSPMini2";
@@ -169,6 +173,7 @@ public class BroadlinkBindingConstants {
         SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_SP1, SP1);
         SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_SP2, SP2);
         SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_SP3, SP3);
+        SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_SP3S, SP3S);
         SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_S1C, S1C);
         SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_PIR, S1P);
         SUPPORTED_THING_TYPES_UIDS_TO_NAME_MAP.put(THING_TYPE_MAGNET, S1M);

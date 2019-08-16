@@ -52,7 +52,8 @@ public class RetryableSocket {
                 socket = new DatagramSocket();
                 socket.setBroadcast(true);
                 socket.setReuseAddress(true);
-                socket.setSoTimeout(5000);
+//                socket.setSoTimeout(5000);
+                socket.setSoTimeout(1000);
             }
             InetAddress host = InetAddress.getByName(thingConfig.getIpAddress());
             int port = thingConfig.getPort();

@@ -53,7 +53,7 @@ public class BroadlinkSocketModel2Handler extends BroadlinkSocketHandler {
         }
     }
 
-    private OnOffType deriveOnOffStateFromPayload(byte[] payload) {
+    protected OnOffType deriveOnOffStateFromPayload(byte[] payload) {
 		// Credit to the Python Broadlink implementation for this:
 		// https://github.com/mjg59/python-broadlink/blob/master/broadlink/__init__.py
 		// Function check_power does more than just check if payload[4] == 1 !

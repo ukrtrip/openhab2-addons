@@ -70,6 +70,8 @@ public class BroadlinkDiscoveryService extends AbstractDiscoveryService
         properties.put("ipAddress", remoteAddress);
         properties.put("port", Integer.valueOf(remotePort));
         properties.put("mac", remoteMAC);
+        properties.put("authorizationKey", BroadlinkBindingConstants.AUTHORIZATION_KEY_DEFAULT);
+        properties.put("iv", BroadlinkBindingConstants.IV_DEFAULT );
         ThingUID thingUID = new ThingUID(thingTypeUID, remoteMAC.replace(":", "-"));
         if (logger.isDebugEnabled()) {
             logger.debug("Device '{}' discovered at '{}'.", thingUID, remoteAddress);
